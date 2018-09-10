@@ -6,6 +6,9 @@ from functions import *
 from operator import add
 import pprint
 
+from python.functions import normalize_text
+from stopwords import Stopwords
+
 spark_conf = SparkConf()
 spark_conf.setMaster("local[1]")
 
@@ -18,16 +21,18 @@ phrases = [
 """Apache Spark requires a cluster manager and a distributed storage system. For cluster management, Spark supports standalone (native Spark cluster), Hadoop YARN, or Apache Mesos.[6] For distributed storage, Spark can interface with a wide variety, including Hadoop Distributed File System (HDFS),[7] MapR File System (MapR-FS),[8] Cassandra,[9] OpenStack Swift, Amazon S3, Kudu, or a custom solution can be implemented. Spark also supports a pseudo-distributed local mode, usually used only for development or testing purposes, where distributed storage is not required and the local file system can be used instead; in such a scenario, Spark is run on a single machine with one executor per CPU core."""
 ]
 
+stopwords = Stopwords()
 
 rdd = spark_context.parallelize(phrases)
 rdd = (rdd
         .map(normalize_text)
         .flatMap(lambda x: x.split())
+        .filter(lambda w: not stopwords.is_stopword(w))
         .map(lambda x: (x, 1))
         .reduceByKey(add)
+        .sortBy(lambda x: x[1])
 )
 
-results = rdd.collect()
-rdd.collect()
+results = rdd.count()
 pprint.pprint(results)
 
